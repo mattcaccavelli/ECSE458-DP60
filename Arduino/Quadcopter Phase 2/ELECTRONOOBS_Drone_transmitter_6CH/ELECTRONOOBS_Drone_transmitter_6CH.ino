@@ -72,9 +72,9 @@ void loop()
   // The calibration numbers used here should be measured 
   // for your joysticks till they send the correct values.
   data.throttle = mapJoystickValues( analogRead(A0), 0, 521, 1023, true );
-  data.yaw      = mapJoystickValues( analogRead(A1), 0, 525, 1023, false );
-  data.pitch    = mapJoystickValues( analogRead(A2), 0, 511, 1023, true );
-  data.roll     = mapJoystickValues( analogRead(A3), 0, 502, 1023, false );
+  data.yaw      = mapJoystickValues( analogRead(A1), 0, 535, 1023, false ); //525
+  data.pitch    = mapJoystickValues( analogRead(A2), 0, 501, 1023, true ); //511
+  data.roll     = mapJoystickValues( analogRead(A3), 0, 512, 1023, false ); //502
   data.AUX1     = digitalRead(2); //The 2 toggle switches
   data.AUX2     = digitalRead(3);
 

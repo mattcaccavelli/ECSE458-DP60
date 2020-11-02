@@ -52,7 +52,7 @@ void resetData()
 
 void setPPMValuesFromData()
 {
-  ppm[0] = map(data.throttle, 0, 255, 1000, 2000);
+  ppm[0] = map(data.throttle, 0, 255, 1000, 1500);
   ppm[1] = map(data.yaw,      0, 255, 1000, 2000);
   ppm[2] = map(data.pitch,    0, 255, 1000, 2000);
   ppm[3] = map(data.roll,     0, 255, 1000, 2000);
