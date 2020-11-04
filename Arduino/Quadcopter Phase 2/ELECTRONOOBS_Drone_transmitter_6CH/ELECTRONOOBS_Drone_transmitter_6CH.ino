@@ -71,7 +71,7 @@ void loop()
 {
   // The calibration numbers used here should be measured 
   // for your joysticks till they send the correct values.
-  data.throttle = mapJoystickValues( analogRead(A0), 0, 521, 1023, true );
+  data.throttle = mapJoystickValues( analogRead(A4), 0, 521, 1023, true ); //Change to A4 for potentiometer controlled
   data.yaw      = mapJoystickValues( analogRead(A1), 0, 535, 1023, false ); //525
   data.pitch    = mapJoystickValues( analogRead(A2), 0, 501, 1023, true ); //511
   data.roll     = mapJoystickValues( analogRead(A3), 0, 512, 1023, false ); //502
