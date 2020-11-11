@@ -11,6 +11,28 @@ Please, like, share and subscribe on my https://www.youtube.com/c/ELECTRONOOBS
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
+#include <HCSR04.h> //Sonar
+
+// Pins for trigger and echo on SR04
+int triggerPin = 2;
+int echoPin = 3;
+
+// Initialize all variables for PIDs
+int prevMillis = 0;
+int currentMillis = 0;
+int dt = 0;
+int setPoint = 0;
+int currentDistance = 0;
+int error = 0;
+int lastError = 0;
+int cumError = 0;
+int P = 0;
+int Kp = 10;
+int I = 0;
+int Ki = 0.01;
+int D = 0;
+int Kd = 100;
+int c = 0;
 
 ////////////////////// PPM CONFIGURATION//////////////////////////
 #define channel_number 6  //set the number of channels
@@ -52,12 +74,44 @@ void resetData()
 
 void setPPMValuesFromData()
 {
-  ppm[0] = map(data.throttle, 0, 255, 1000, 1500);
+  ppm[0] = map(data.throttle, 0, 255, 1000, 2000); //Using 5030 props instead of 1045
   ppm[1] = map(data.yaw,      0, 255, 1000, 2000);
   ppm[2] = map(data.pitch,    0, 255, 1000, 2000);
   ppm[3] = map(data.roll,     0, 255, 1000, 2000);
   ppm[4] = map(data.AUX1,     0, 1, 1000, 2000);
-  ppm[5] = map(data.AUX2,     0, 1, 1000, 2000);  
+  ppm[5] = map(data.AUX2,     0, 1, 1000, 2000);
+
+//  set PIDs here with data from sonar
+  int throttle = ppm[0];
+  boolean aux1 = data.AUX1;
+  if (aux1=0) {
+    throttle = 1000;
+    c = 0;
+    ppm[0] = throttle;
+  } else {
+    if (c=0) {
+      throttle = 1000;
+      prevMillis = millis();
+      c += 1;
+      ppm[0] = throttle;
+    } else {
+      currentMillis = millis();
+      dt = currentMillis - prevMillis;
+      setPoint = map(throttle, 1000, 2000, 5, 100);
+      double* distances = HCSR04.measureDistanceCm();
+      currentDistance = distances[0];
+      error = setPoint - currentDistance;
+      cumError += error*dt;
+      P = Kp*error;
+      I = Ki*cumError;
+      D = Kd*(error-lastError)/dt;
+      throttle = P+I+D;
+      throttle = map(throttle, 5, 100, 1000, 2000);
+      lastError = error;
+      prevMillis = currentMillis;
+      ppm[0] = throttle;
+    }
+  }
   }
 
 /**************************************************/
@@ -81,6 +135,9 @@ void setup()
 {  
   resetData();
   setupPPM();
+
+  //Setup sonar
+  HCSR04.begin(triggerPin, echoPin);
   
   // Set up radio module
   radio.begin();
