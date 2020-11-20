@@ -11,28 +11,30 @@ Please, like, share and subscribe on my https://www.youtube.com/c/ELECTRONOOBS
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include <HCSR04.h> //Sonar
+//#include <HCSR04.h> //Sonar
 
 // Pins for trigger and echo on SR04
-int triggerPin = 2;
-int echoPin = 3;
+int triggerPin = 4;
+int echoPin = 5;
+double duration, distance;
 
 // Initialize all variables for PIDs
-int prevMillis = 0;
-int currentMillis = 0;
-int dt = 0;
-int setPoint = 0;
-int currentDistance = 0;
-int error = 0;
-int lastError = 0;
-int cumError = 0;
-int P = 0;
-int Kp = 10;
-int I = 0;
-int Ki = 0.01;
-int D = 0;
-int Kd = 100;
+unsigned long prevMillis = 0;
+unsigned long currentMillis = 0;
+unsigned long dt = 0;
+double setPoint = 0;
+double currentDistance = 0;
+double error = 0;
+double lastError = 0;
+double cumError = 0;
+double P = 0;
+double Kp = 2;
+double I = 0;
+double Ki = 0.01;
+double D = 0;
+double Kd = 5;
 int c = 0;
+int counterAnomaly = 0;
 
 ////////////////////// PPM CONFIGURATION//////////////////////////
 #define channel_number 6  //set the number of channels
@@ -81,37 +83,7 @@ void setPPMValuesFromData()
   ppm[4] = map(data.AUX1,     0, 1, 1000, 2000);
   ppm[5] = map(data.AUX2,     0, 1, 1000, 2000);
 
-//  set PIDs here with data from sonar
-  int throttle = ppm[0];
-  boolean aux1 = data.AUX1;
-  if (aux1=0) {
-    throttle = 1000;
-    c = 0;
-    ppm[0] = throttle;
-  } else {
-    if (c=0) {
-      throttle = 1000;
-      prevMillis = millis();
-      c += 1;
-      ppm[0] = throttle;
-    } else {
-      currentMillis = millis();
-      dt = currentMillis - prevMillis;
-      setPoint = map(throttle, 1000, 2000, 5, 100);
-      double* distances = HCSR04.measureDistanceCm();
-      currentDistance = distances[0];
-      error = setPoint - currentDistance;
-      cumError += error*dt;
-      P = Kp*error;
-      I = Ki*cumError;
-      D = Kd*(error-lastError)/dt;
-      throttle = P+I+D;
-      throttle = map(throttle, 5, 100, 1000, 2000);
-      lastError = error;
-      prevMillis = currentMillis;
-      ppm[0] = throttle;
-    }
-  }
+
   }
 
 /**************************************************/
@@ -133,11 +105,14 @@ void setupPPM() {
 
 void setup()
 {  
+  Serial.begin(9600); //Serial communication
   resetData();
   setupPPM();
 
   //Setup sonar
-  HCSR04.begin(triggerPin, echoPin);
+//  HCSR04.begin(triggerPin, echoPin);
+  pinMode(triggerPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   
   // Set up radio module
   radio.begin();
@@ -171,7 +146,69 @@ void loop()
     // signal lost?
     resetData();
   }
-  
+  //  set PIDs here with data from sonar
+  int throttle = data.throttle;
+  boolean aux1 = data.AUX1;
+  if (aux1==0) {
+    throttle = 0;
+    c = 0;
+    data.throttle = throttle;
+    cumError = 0; //Set this to 0 to start integral error from scratch
+    Serial.println("Drone not started");
+  } else {
+    if (c<2) {
+      throttle = 0;
+      prevMillis = millis();
+      c += 1;
+      data.throttle = throttle;
+      counterAnomaly = 0;
+      Serial.println("Drone started and minimum throttle given\n\n");
+    } else {
+//      Serial.println("Entered main body");
+      currentMillis = millis();
+      dt = currentMillis - prevMillis;
+      setPoint = map(throttle, 0, 255, 5, 100);
+      
+      double distance = computeDistance();
+      if (distance>200 && counterAnomaly <1000) {
+        distance = 0;
+        counterAnomaly += 1;
+      }
+      
+      Serial.println(distance);
+      while (distance<0 || distance>100) distance = computeDistance();
+
+//      Serial.println("got the distance");
+      currentDistance = distance;
+      error = setPoint - currentDistance;
+      cumError += error;
+      P = Kp*error;
+      I = Ki*cumError*dt;
+      D = Kd*(error-lastError)/dt;
+      throttle = P+I+D;
+      throttle = map(throttle, 5, 100, 0, 255);
+      lastError = error;
+      prevMillis = currentMillis;
+//      Remove anomalies in throttle values
+      if(throttle<0){
+        data.throttle = 0;
+      } else if (throttle > 255){
+        data.throttle = 255;
+      } else {
+        data.throttle = throttle;
+      }
+//      ppm[0] = throttle;
+      Serial.print("Setpoint: ");
+      Serial.println(setPoint);
+      Serial.print("Current Distance: ");
+      Serial.println(currentDistance);
+//      Serial.print("Error: ");
+//      Serial.println(error);
+      Serial.print("Current Throttle: ");
+      Serial.println(map(data.throttle, 0, 255, 1000, 2000));
+      Serial.println("\n"); //For Testing Purpose
+    }
+  }
   setPPMValuesFromData();
 }
 
@@ -211,4 +248,22 @@ ISR(TIMER1_COMPA_vect){
       cur_chan_numb++;
     }     
   }
+}
+
+double computeDistance(){
+//      Calculate 10 distances and its average
+  distance = 0;
+  for (int i = 0; i< 10; i++){
+    digitalWrite(triggerPin, LOW);
+    delayMicroseconds(2);
+//      Sets the trigPin on HIGH state for 10 micro seconds
+    digitalWrite(triggerPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(triggerPin, LOW);
+//      Reads the echoPin, returns the sound wave travel time in microseconds
+    duration = pulseIn(echoPin, HIGH);
+//      Calculating the distance
+    distance += duration*0.034/2;  
+  }
+  return distance /= 10;
 }
