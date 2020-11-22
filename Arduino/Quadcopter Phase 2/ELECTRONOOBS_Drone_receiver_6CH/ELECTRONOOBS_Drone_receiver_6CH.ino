@@ -28,13 +28,20 @@ double error = 0;
 double lastError = 0;
 double cumError = 0;
 double P = 0;
-double Kp = 2;
 double I = 0;
-double Ki = 0.01;
 double D = 0;
-double Kd = 5;
 int c = 0;
 int counterAnomaly = 0;
+
+// PID Tuning
+double Kp = 0.05; // bang bang control and keep it low to avoid overshoot
+double Ki = 0.001; // remove steady state error with this
+double Kd = 1.9; // increase it to measure small change in height and adjust the propellers
+
+//Offsets to avoid drifting problems
+int yawOffset = 0;
+int pitchOffset = 0;
+int rollOffset = 1;
 
 ////////////////////// PPM CONFIGURATION//////////////////////////
 #define channel_number 6  //set the number of channels
@@ -76,10 +83,10 @@ void resetData()
 
 void setPPMValuesFromData()
 {
-  ppm[0] = map(data.throttle, 0, 255, 1000, 2000); //Using 5030 props instead of 1045
-  ppm[1] = map(data.yaw,      0, 255, 1000, 2000);
-  ppm[2] = map(data.pitch,    0, 255, 1000, 2000);
-  ppm[3] = map(data.roll,     0, 255, 1000, 2000);
+  ppm[0] = map(data.throttle, 0, 255, 1000, 1750); //Using 5030 props instead of 1045
+  ppm[1] = map(data.yaw + yawOffset,      0, 255, 1000, 2000);
+  ppm[2] = map(data.pitch + pitchOffset,    0, 255, 1000, 2000);
+  ppm[3] = map(data.roll + rollOffset,     0, 255, 1000, 2000);
   ppm[4] = map(data.AUX1,     0, 1, 1000, 2000);
   ppm[5] = map(data.AUX2,     0, 1, 1000, 2000);
 
@@ -170,12 +177,13 @@ void loop()
       setPoint = map(throttle, 0, 255, 5, 100);
       
       double distance = computeDistance();
+      distance -= 8;
       if (distance>200 && counterAnomaly <1000) {
         distance = 0;
         counterAnomaly += 1;
       }
       
-      Serial.println(distance);
+//      Serial.println(distance);
       while (distance<0 || distance>100) distance = computeDistance();
 
 //      Serial.println("got the distance");
@@ -190,6 +198,8 @@ void loop()
       lastError = error;
       prevMillis = currentMillis;
 //      Remove anomalies in throttle values
+      Serial.print("Actual Throttle with PID: ");
+      Serial.println(map(throttle, 0, 255, 1000, 1750));
       if(throttle<0){
         data.throttle = 0;
       } else if (throttle > 255){
@@ -197,7 +207,6 @@ void loop()
       } else {
         data.throttle = throttle;
       }
-//      ppm[0] = throttle;
       Serial.print("Setpoint: ");
       Serial.println(setPoint);
       Serial.print("Current Distance: ");
@@ -205,8 +214,9 @@ void loop()
 //      Serial.print("Error: ");
 //      Serial.println(error);
       Serial.print("Current Throttle: ");
-      Serial.println(map(data.throttle, 0, 255, 1000, 2000));
-      Serial.println("\n"); //For Testing Purpose
+      Serial.println(map(data.throttle, 0, 255, 1000, 1750));
+      
+      Serial.println("\n\n\n"); //For Testing Purpose
     }
   }
   setPPMValuesFromData();
