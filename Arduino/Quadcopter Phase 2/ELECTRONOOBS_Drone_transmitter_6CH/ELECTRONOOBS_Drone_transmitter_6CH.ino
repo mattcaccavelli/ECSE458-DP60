@@ -1,10 +1,5 @@
-/*A basic 4 channel transmitter using the nRF24L01 module.*/
-/* Like, share and subscribe, ELECTRONOOBS */
-/* http://www.youtube/c/electronoobs */
+/*A basic 6 channel transmitter using the nRF24L01 module.*/
 
-/* First we include the libraries. Download it from 
-   my webpage if you donw have the NRF24 library */
- 
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -72,9 +67,9 @@ void loop()
   // The calibration numbers used here should be measured 
   // for your joysticks till they send the correct values.
   data.throttle = mapJoystickValues( analogRead(A4), 0, 521, 1023, true ); //Change to A4 for potentiometer controlled
-  data.yaw      = mapJoystickValues( analogRead(A1), 0, 535, 1023, false ); //525
-  data.pitch    = mapJoystickValues( analogRead(A2), 0, 501, 1023, true ); //511
-  data.roll     = mapJoystickValues( analogRead(A3), 0, 512, 1023, false ); //502
+  data.yaw      = mapJoystickValues( analogRead(A1), 0, 536, 1023, false ); //535
+  data.pitch    = mapJoystickValues( analogRead(A2), 0, 502, 1023, true ); //501
+  data.roll     = mapJoystickValues( analogRead(A3), 0, 511, 1023, false ); //512
   data.AUX1     = digitalRead(2); //The 2 toggle switches
   data.AUX2     = digitalRead(3);
 

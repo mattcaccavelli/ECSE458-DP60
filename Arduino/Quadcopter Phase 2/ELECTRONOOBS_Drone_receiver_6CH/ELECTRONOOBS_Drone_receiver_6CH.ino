@@ -1,17 +1,11 @@
-/*  
- * Check:  http://www.electronoobs.com/eng_robotica_tut5_2_1.php
- * 
- * 
-A basic receiver test for the nRF24L01 module to receive 6 channels send a ppm sum
-with all of them on digital pin D2.
-Install NRF24 library before you compile
-Please, like, share and subscribe on my https://www.youtube.com/c/ELECTRONOOBS
- */
-
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
 //#include <HCSR04.h> //Sonar
+#include <SD.h>
+
+// SD card initialization
+File myFile;
 
 // Pins for trigger and echo on SR04
 int triggerPin = 4;
@@ -34,14 +28,14 @@ int c = 0;
 int counterAnomaly = 0;
 
 // PID Tuning
-double Kp = 0.05; // bang bang control and keep it low to avoid overshoot
-double Ki = 0.001; // remove steady state error with this
-double Kd = 1.9; // increase it to measure small change in height and adjust the propellers
+double Kp = 0.06; // bang bang control and keep it low to avoid overshoot
+double Ki = 0.01; // remove steady state error with this
+double Kd = 4.5; // increase it to measure small change in height and adjust the propellers
 
 //Offsets to avoid drifting problems
 int yawOffset = 0;
-int pitchOffset = 0;
-int rollOffset = 1;
+int pitchOffset = 0;//-1
+int rollOffset = 2;//3
 
 ////////////////////// PPM CONFIGURATION//////////////////////////
 #define channel_number 6  //set the number of channels
@@ -128,6 +122,21 @@ void setup()
 
   radio.openReadingPipe(1,pipeIn);
   radio.startListening();
+
+//  // Setup SD Card module
+//  Serial.print("Initializing SD card...");
+//
+//  if (!SD.begin(3)) {
+//    Serial.println("initialization failed!");
+//    while (1);
+//  }
+//  Serial.println("initialization done.");
+//
+//  myFile = SD.open("DroneReading.txt", FILE_WRITE);
+//  if (myFile) {
+//    myFile.println("Time(ms)\tReference Point (cm)\tCurrent Distance (cm)\tThrottle Value");
+//    myFile.close();
+//  }
 }
 
 /**************************************************/
@@ -136,8 +145,10 @@ unsigned long lastRecvTime = 0;
 
 void recvData()
 {  
-  while ( radio.available() ) {        
+  while ( radio.available() ) { 
+//    Serial.println("Entered radio data");       
     radio.read(&data, sizeof(MyData));
+//    Serial.println("Radio data done");
     lastRecvTime = millis();
   }
 }
@@ -146,8 +157,11 @@ void recvData()
 
 void loop()
 {
+  //Open txt file and start writing
+//  myFile = SD.open("DroneReading.txt", FILE_WRITE);
+//  Serial.println("Receiving data");
   recvData();
-
+//  Serial.println("Received data");
   unsigned long now = millis();
   if ( now - lastRecvTime > 1000 ) {
     // signal lost?
@@ -217,9 +231,20 @@ void loop()
       Serial.println(map(data.throttle, 0, 255, 1000, 1750));
       
       Serial.println("\n\n\n"); //For Testing Purpose
+
+      // Store the logs so we can analyze it on matlab and come up with better PID tuning
+//      myFile.print(now);
+//      myFile.print(", ");
+//      myFile.print(setPoint);
+//      myFile.print(", ");
+//      myFile.print(currentDistance);
+//      myFile.print(", ");
+//      myFile.println(map(data.throttle, 0, 255, 1000, 1750));
     }
   }
   setPPMValuesFromData();
+//  myFile.close();
+//  Serial.println("End part of loop");
 }
 
 /**************************************************/
