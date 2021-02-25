@@ -71,10 +71,11 @@ void loop()
   //get and print altitude data
   float altitude = bme280.calcAltitude(pressure)-bme280.calcAltitude(offset);
   altitude *= 100;
-  int height = altitude / 10;
-  if(height<0) height=0;
+//  int height = altitude / 10;
+//  if(height<0) height=0;
   Serial.print("Altitude: ");
-  Serial.print(height*10);
+//  Serial.print(height*10);
+  Serial.print(altitude);
   Serial.println(" cm\n");
 
 //  //get and print humidity data
@@ -82,5 +83,5 @@ void loop()
 //  Serial.print(bme280.getHumidity());
 //  Serial.println("%\n");
 
-  delay(100);
+//  delay(10);
 }
