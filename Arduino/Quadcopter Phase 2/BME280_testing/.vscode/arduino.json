@@ -1,0 +1,7 @@
+{
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328old",
+    "port": "/dev/tty.usbserial-1410",
+    "sketch": "BME_Readings/BME_Readings.ino",
+    "programmer": "AVR ISP"
+}

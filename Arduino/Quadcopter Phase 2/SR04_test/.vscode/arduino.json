@@ -1,0 +1,7 @@
+{
+    "port": "/dev/tty.usbserial-1410",
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328old",
+    "sketch": "Smoothen_SR04_Result.ino",
+    "programmer": "AVR ISP"
+}
