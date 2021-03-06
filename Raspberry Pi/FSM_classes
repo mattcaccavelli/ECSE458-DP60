@@ -1,0 +1,167 @@
+import time
+import sys
+
+# Libraries for Arduino pin for drone signals
+throttle, yaw, pitch, roll = 128, 128, 128, 128  # Require PWM outputs only
+ARM, FAILSAFE, ANGLE_MODE, ALTHOLD = 0, 0, 0, 0  # any GPIO pins would work
+
+
+class main:
+
+    STATES= ["START","TAKE OFF", "SCAN SURROUNDINGS", "FLY", "COUNT OBJECTS", "FIND LANDING SPOT","LANDING", "STOP"]
+
+    def __init__(self, flag, state, endstate, methodexec):
+        self.state= state
+        self.flag = flag
+        self.endstate = endstate
+        self.methodexec = methodexec
+
+
+    def signalParameters(self,throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD):
+        print("throttle = ", throttle)
+        print("yaw = ", yaw)
+        print("pitch = ", pitch)
+        print("roll = ", roll)
+        print("ARM = ", ARM)
+        print("FAILSAFE = ", FAILSAFE)
+        print("ANGLE_MODE = ", ANGLE_MODE)
+        print("ALTHOLD = ", ALTHOLD)
+        print("\n")
+
+
+    def state_transition(self,  methodexec, endstate=None):
+        #print(state)
+        #methodexec(state)
+
+        #if flag == 1:
+        endstate= methodexec()
+        print(endstate)
+
+        return endstate
+
+
+    def restart(self):
+        ARM==0
+        throttle==0
+
+    def start(self):
+        ARM ==1
+        throttle== 0
+        if ARM==1 and throttle==0:
+            print('proceed to take-off')
+        else:
+            self.restart()
+            time.sleep(2)
+            ARM == 1
+            throttle == 0
+
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+
+
+    # if these two conditions are met, motors will start --> throttle works. proceed to take off
+
+    def landing(self):
+        for i in range(175, 0, -25):
+            throttle = i
+            print("Drone throttle", throttle)
+            time.sleep(0.5)
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+    # find_landing_spot set as complete.
+    # throttle =1000-2000 reduced to between 10
+    # height=0
+
+    def take_off(self):
+
+        ALTHOLD == 0
+        for i in range(0, 175, 25):
+            throttle = i
+            print("Drone throttle", throttle)
+            time.sleep(0.5)
+
+    # receiving feed from ultrasonic sensor. once height reached.
+        print("Drone hold is now in effect")
+        #         Drone hold is now in effect
+        ALTHOLD == 1
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+
+    def scan_surroundings(self):
+        #matthew
+        # feed from camera
+        yaw=1600
+        ALTHOLD==1
+
+        #if target found:
+            #yaw=0
+            #time.sleep(2)
+
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+    def count_objects(self):
+
+    # throttle
+        ALTHOLD==1
+    # camera_feed
+    # method result() to send results back to server
+
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+    def find_landing_spot(self):
+        #matthew
+        # adjust height
+        ALTHOLD==1
+        # camera feed to find "helipad"
+        #
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+    def flying(self, dest):
+    #mattthew
+        ALTHOLD == 1
+        if dest== ('table') :
+            throttle== 2000
+            #camera feed
+            #change camera inclination
+        elif dest== ('landing spot'):
+            throttle== 1000
+
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+
+    def stop(self):
+        ARM==0
+        ALTHOLD==1
+        return self.signalParameters(throttle, yaw, pitch, roll, ARM, FAILSAFE, ANGLE_MODE, ALTHOLD)
+
+
+fsm= main(flag= None, state=None, endstate=None, methodexec=None)
+
+state_1= fsm.state_transition(None, fsm.start)
+print('proceed to start')
+time.wait(2)
+state_2= fsm.state_transition(state_1, fsm.take_off)
+print('proceed to take off')
+time.wait(2)
+state_3= fsm.state_transition(state_2, fsm.scan_surroundings())
+print('scan')
+time.wait(2)
+state_4= fsm.state_transition(state_3, fsm.flying())
+print('fly')
+time.wait(2)
+state_5= fsm.state_transition(state_4, fsm.count_objects() )
+print('count')
+time.wait(2)
+state_6= fsm.state_transition(state_5, fsm.find_landing_spot())
+print('proceed to landing spot')
+time.wait(2)
+state_7= fsm.state_transition(state_6, fsm.landing())
+print('proceed to landing')
+time.wait(2)
+state_8= fsm.state_transition(state_7, fsm.stop())
+print('proceed to stop')
+time.wait(2)
+
+states= [state_1, state_2, state_3, state_4, state_5, state_6, state_7, state_8]
+for i in range(len(states)):
+    print(states(i))
